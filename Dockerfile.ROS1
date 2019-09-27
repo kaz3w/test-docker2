@@ -1,0 +1,88 @@
+# syntax = docker/dockerfile:experimental
+# MAINTAINER Katsumi WATANABE docker@xenon11.sakura.ne.jp
+
+#ARG ros_distro
+#ENV ROS_DISTRO=${ros_distro}
+
+FROM ros:melodic-ros-base
+
+ARG http_proxy
+ARG https_proxy
+ARG apt_proxy
+ARG git_proxy
+
+ENV CURL_PROXY=${http_proxy}
+ENV HTTP_PROXY=${apt_proxy}
+ENV HTTPS_PROXY=${apt_proxy}
+ENV GIT_PROXY=${git_proxy}
+ENV no_proxy="127.0.0.1,localhost,10.78.0.0/16"
+
+ENV DATASET_PATH '/data/data/cut/train/'
+#ENV CUDA_VISIBLE_DEVICES ''
+ENV DEBIAN_FRONTEND=noninteractive
+
+# useing APT-mirror/proxy in apt configuration 
+RUN mkdir -p /etc/apt/sources.list.d
+WORKDIR /etc/apt
+COPY ./etc/apt/apt.conf .
+COPY ./etc/apt/sources.list .
+#COPY ./etc/apt/sources.list.d/ros2.list sources.list.d
+#RUN rm -f /etc/apt/sources.list.d/ros2-latest.list
+
+WORKDIR /
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl 
+
+# setup keys
+RUN curl -sSL --proxy ${CURL_PROXY} 'http://keyserver.ubuntu.com/pks/lookup?op=get&search=0xC1CF6E31E6BADE8868B172B4F42ED6FBAB17C654' | apt-key add -
+#COPY ./maintenance/update_ros1_repo_keys.sh .
+
+RUN apt-get install -y --no-install-recommends \
+    openssh-client \
+    python3-pip \
+    python3-numpy \
+    libboost-python-dev \
+    imagemagick \
+    bzip2 \
+    nano \
+    net-tools \
+    iputils-ping \
+    iproute2 \
+    usbutils \
+    libusb-1.0-0-dev \
+    uvcdynctrl \
+    v4l-utils \
+    ros-melodic-desktop-full \
+    ros-melodic-roscpp \
+    python-rosinstall-generator \
+    python-wstool \
+    build-essential \
+    python-catkin-tools \
+    vim \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/*
+
+CMD rosdep init \
+&& rosdep update
+
+#disable ROS1 
+#RUN . /opt/ros/melodic/setup.sh
+#RUN . `catkin locate --shell-verbs`
+
+
+WORKDIR ${MYSRC}
+
+#######################3
+# libuvc 
+
+RUN git clone https://github.com/kaz3w/libuvc.git
+RUN mkdir -p ${MYSRC}/libuvc/_build
+WORKDIR ${MYSRC}/libuvc/_build
+RUN cmake .. -DBUILD_TEST=ON -DBUILD_EXAMPLE=ON -DBUILD_EXAMPLE_WRITE_JPEG=ON
+RUN make
+
+WORKDIR /
+
+CMD ["bash"]
+

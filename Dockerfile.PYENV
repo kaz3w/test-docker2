@@ -1,0 +1,118 @@
+# syntax = docker/dockerfile:experimental
+# MAINTAINER Katsumi WATANABE docker@xenon11.sakura.ne.jp
+
+FROM nvidia/cuda:10.0-cudnn7-runtime
+RUN echo "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64 /" > /etc/apt/sources.list.d/nvidia-ml.list
+
+
+ARG http_proxy
+ARG https_proxy
+ARG apt_proxy
+ARG git_proxy
+
+ENV HTTP_PROXY=${apt_proxy}
+ENV HTTPS_PROXY=${apt_proxy}
+ENV GIT_PROXY=${git_proxy}
+
+ENV DATASET_PATH '/data/data/cut/train/'
+ENV CUDA_VISIBLE_DEVICES ''
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssh-client \
+    python3-pip \
+    git \
+    wget \
+    curl \
+    libopencv-dev \
+    python-pip \
+    unzip \
+    imagemagick \ 
+    bzip2 \
+    nano \
+    net-tools \
+    iputils-ping \
+    iproute2 \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/*
+
+
+ENV HTTP_PROXY=${http_proxy}
+ENV HTTPS_PROXY=${https_proxy}
+
+
+WORKDIR wheelhouse
+#COPY wheelhouse/tensorflow_gpu-1.14.0-cp36-cp36m-manylinux1_x86_64.whl .
+COPY wheelhouse/tensorflow_gpu-1.14.0-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/torch-0.3.1-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/torch-1.2.0-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/numpy-1.16.5-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/scipy-1.2.2-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/opencv_python-3.4.0.14-cp27-cp27mu-manylinux1_x86_64.whl .
+
+COPY wheelhouse/Anaconda3-4.4.0-Linux-x86_64.sh .
+
+
+
+RUN pip --proxy ${http_proxy} install setuptools \
+&& pip --proxy ${http_proxy} install wheel
+#RUN pip --proxy ${http_proxy} install torch-0.3.1-cp27-cp27mu-manylinux1_x86_64.whl
+RUN pip --proxy ${http_proxy} install torch-1.2.0-cp27-cp27mu-manylinux1_x86_64.whl \
+&& pip --proxy ${http_proxy} install tensorflow_gpu-1.14.0-cp27-cp27mu-manylinux1_x86_64.whl
+#RUN pip --proxy ${http_proxy} install opencv-python==3.4.0.14
+RUN pip --proxy ${http_proxy} install opencv_python-3.4.0.14-cp27-cp27mu-manylinux1_x86_64.whl \
+&& pip --proxy ${http_proxy} install numpy-1.16.5-cp27-cp27mu-manylinux1_x86_64.whl \
+&& pip --proxy ${http_proxy} install scipy-1.2.2-cp27-cp27mu-manylinux1_x86_64.whl \
+&& pip --proxy ${http_proxy} install torchvision
+#RUN pip --proxy ${http_proxy} install tensorflow_gpu-1.14.0-cp36-cp36m-manylinux1_x86_64.whl
+#RUN pip --proxy ${http_proxy} install tensorflow-gpu
+RUN pip --proxy ${http_proxy} install keras \
+&& pip --proxy ${http_proxy} install tqdm \
+&& pip --proxy ${http_proxy} install h5py
+#RUN pip --proxy ${http_proxy} install kaggle-cli
+RUN pip --proxy ${http_proxy} install gym \
+&& pip --proxy ${http_proxy} install chainer
+#RUN pip --proxy ${http_proxy} install http://download.pytorch.org/whl/cu80/torch-0.2.0.post3-cp36-cp36m-manylinux1_x86_64.whl
+
+
+
+ENV DEBIAN_FRONTEND=dialog
+
+WORKDIR /
+ENV HOME  /
+ENV PYENV_ROOT /.pyenv
+ENV PATH $PYENV_ROOT/shims:$PYENV_ROOT/bin:$PATH
+
+RUN git clone https://github.com/pyenv/pyenv.git -c http.proxy=${GIT_PROXY} .pyenv
+
+#RUN pyenv install anaconda3-4.4.0
+## LOCAL RUN pyenv install /wheelhouse/Anaconda3-4.4.0-Linux-x86_64.sh
+
+
+#RUN pyenv global anaconda3-4.4.0
+#RUN pyenv rehash
+
+
+# END TO END LIPREADING
+#RUN git clone https://github.com/mpc001/end-to-end-lipreading.git -c http.proxy=${GIT_PROXY} 
+#WORKDIR /end-to-end-lipreading
+
+#CMD ["/usr/bin/python3", "main.py", "--path", "''", \
+#			"--dataset", $DATASET_PATH \
+#			"--mode", "'temporalConv'", \
+#			"--batch_size", "36", "--lr", "3e-4", \
+#			"--epochs", "30"]
+
+# CUDA_VISIBLE_DEVICES='' python main.py --path './temporalConv/temporalConv_x.pt' --dataset <dataset_path> \
+#                                        --mode 'backendGRU' --every-frame \
+#                                        --batch_size 36 --lr 3e-4 \
+#                                        --epochs 5
+
+# CUDA_VISIBLE_DEVICES='' python main.py --path './backendGRU/backendGRU_x.pt' --dataset <dataset_path> \
+#                                        --mode 'finetuneGRU' --every-frame \
+#                                        --batch_size 36 --lr 3e-4 \
+#                                        --epochs 30
+
+#ENTRYPOINT [ "nvidia-smi"]
+
+CMD [ "bash" ]

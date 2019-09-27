@@ -1,0 +1,94 @@
+# syntax = docker/dockerfile:experimental
+# assumes DOCKER_BUILDKIT=1 in .bashrc
+# MAINTAINER Katsumi WATANABE docker@xenon11.sakura.ne.jp
+
+FROM nvidia/cuda:10.0-cudnn7-runtime
+
+ARG http_proxy
+ARG httpS_proxy
+ARG apt_proxy
+
+ENV HTTP_PROXY=${apt_proxy}
+ENV HTTPS_PROXY=${apt_proxy}
+
+ENV DATASET_PATH '/data/data/cut/train/'
+#ENV CUDA_VISIBLE_DEVICES ''
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt update
+RUN apt install -y python3-pip wget git
+
+#RUN wget https://raw.githubusercontent.com/fchollet/keras/master/examples/mnist_cnn.py
+
+
+ENV HTTP_PROXY=${http_proxy}
+ENV HTTPS_PROXY=${http_proxy}
+
+
+WORKDIR /
+COPY scripts/mnist_cnn.py .
+
+RUN mkdir -p /etc/apt
+WORKDIR /etc/apt
+COPY etc/apt/apt.conf .
+COPY etc/apt/sources.list .
+
+RUN mkdir -p /wheelhouse
+WORKDIR /wheelhouse
+COPY wheelhouse/tensorflow_gpu-1.14.0-cp36-cp36m-manylinux1_x86_64.whl .
+# COPY wheelhouse/tensorflow_gpu-1.14.0-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/torch-0.3.1-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/torch-1.2.0-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/scipy-1.2.2-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/opencv_python-3.4.0.14-cp27-cp27mu-manylinux1_x86_64.whl .
+COPY wheelhouse/Keras-2.3.0-py2.py3-none-any.whl .
+COPY wheelhouse/PyYAML-5.1.2.tar.gz .
+COPY wheelhouse/six-1.12.0-py2.py3-none-any.whl .
+COPY wheelhouse/astor-0.8.0-py2.py3-none-any.whl .
+COPY wheelhouse/gast-0.3.2.tar.gz .
+COPY wheelhouse/Keras_Preprocessing-1.1.0-py2.py3-none-any.whl .
+COPY wheelhouse/protobuf-3.9.1-cp36-cp36m-manylinux1_x86_64.whl .
+COPY wheelhouse/grpcio-1.23.0-cp36-cp36m-manylinux1_x86_64.whl .
+COPY wheelhouse/google_pasta-0.1.7-py3-none-any.whl .
+COPY wheelhouse/tensorflow_estimator-1.14.0-py2.py3-none-any.whl .
+COPY wheelhouse/termcolor-1.1.0.tar.gz .
+COPY wheelhouse/Keras_Applications-1.0.8-py3-none-any.whl .
+COPY wheelhouse/wrapt-1.11.2.tar.gz .
+COPY wheelhouse/absl-py-0.8.0.tar.gz .
+COPY wheelhouse/numpy-1.17.2-cp36-cp36m-manylinux1_x86_64.whl .
+COPY wheelhouse/tensorboard-1.14.0-py3-none-any.whl .
+COPY wheelhouse/h5py-2.10.0-cp36-cp36m-manylinux1_x86_64.whl .
+COPY wheelhouse/Werkzeug-0.16.0-py2.py3-none-any.whl .
+COPY wheelhouse/Markdown-3.1.1-py2.py3-none-any.whl .
+COPY wheelhouse/setuptools-41.2.0-py2.py3-none-any.whl .
+COPY wheelhouse/scipy-1.3.1-cp36-cp36m-manylinux1_x86_64.whl .
+
+RUN pip3 install --cache-dir=. six-1.12.0-py2.py3-none-any.whl
+RUN pip3 install --cache-dir=. astor-0.8.0-py2.py3-none-any.whl
+RUN pip3 install --cache-dir=. gast-0.3.2.tar.gz
+RUN pip3 install --cache-dir=. numpy-1.17.2-cp36-cp36m-manylinux1_x86_64.whl
+RUN pip3 install --cache-dir=. PyYAML-5.1.2.tar.gz
+RUN pip3 install --cache-dir=. scipy-1.3.1-cp36-cp36m-manylinux1_x86_64.whl
+
+RUN pip3 install --cache-dir=. Keras_Preprocessing-1.1.0-py2.py3-none-any.whl
+RUN pip3 install --cache-dir=. protobuf-3.9.1-cp36-cp36m-manylinux1_x86_64.whl
+RUN pip3 install --cache-dir=. grpcio-1.23.0-cp36-cp36m-manylinux1_x86_64.whl
+RUN pip3 install --cache-dir=. google_pasta-0.1.7-py3-none-any.whl
+RUN pip3 install --cache-dir=. tensorflow_estimator-1.14.0-py2.py3-none-any.whl
+RUN pip3 install --cache-dir=. termcolor-1.1.0.tar.gz
+RUN pip3 install --cache-dir=. h5py-2.10.0-cp36-cp36m-manylinux1_x86_64.whl
+RUN pip3 install --cache-dir=. wrapt-1.11.2.tar.gz
+RUN pip3 install --cache-dir=. absl-py-0.8.0.tar.gz
+RUN pip3 install --cache-dir=. Werkzeug-0.16.0-py2.py3-none-any.whl
+RUN pip3 install --cache-dir=. Markdown-3.1.1-py2.py3-none-any.whl
+
+RUN pip3 install --cache-dir=. setuptools-41.2.0-py2.py3-none-any.whl
+
+RUN pip3 install --cache-dir=. tensorboard-1.14.0-py3-none-any.whl
+RUN pip3 install --cache-dir=. Keras_Applications-1.0.8-py3-none-any.whl
+RUN pip3 install --cache-dir=. tensorflow_gpu-1.14.0-cp36-cp36m-manylinux1_x86_64.whl
+RUN pip3 install --cache-dir=. Keras-2.3.0-py2.py3-none-any.whl
+
+ENTRYPOINT ["python3", "/mnist_cnn.py"]
+#ENTRYPOINT tail -f /dev/null
+

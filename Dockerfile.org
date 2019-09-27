@@ -1,0 +1,75 @@
+FROM nvidia/cuda:10.0-cudnn7-runtime
+MAINTAINER Katsumi WATANABE docker@xenon11.sakura.ne.jp
+
+ARG http_proxy
+ARG https_proxy
+
+RUN apt update
+RUN apt update --fix-missing
+RUN apt upgrade -y
+
+RUN apt install -y apt-utils 
+RUN apt install -y python3-pip
+RUN apt install -y wget
+RUN apt install -y git
+RUN apt install -y python-pip
+
+RUN pip3 install tensorflow-gpu keras
+
+# END TO END LIPREADING
+RUN git clone https://github.com/mpc001/end-to-end-lipreading.git
+CMD ["cd", "/end-to-end-lipreading.git"]
+
+ENV DATASET_PATH '/data'
+ENV CUDA_VISIBLE_DEVICES ''
+
+# end-to-end-lipreading.git
+CMD ["python", "main.py", "--path", "''", \
+ 			"--dataset", $DATASET_PATH \
+ 			"--mode", "'temporalConv'", \
+ 			"--batch_size", "36", "--lr", "3e-4", \
+ 			"--epochs", "30"]
+
+# CUDA_VISIBLE_DEVICES='' python main.py --path './temporalConv/temporalConv_x.pt' --dataset <dataset_path> \
+#                                        --mode 'backendGRU' --every-frame \
+#                                        --batch_size 36 --lr 3e-4 \
+#                                        --epochs 5
+
+# CUDA_VISIBLE_DEVICES='' python main.py --path './backendGRU/backendGRU_x.pt' --dataset <dataset_path> \
+#                                        --mode 'finetuneGRU' --every-frame \
+#                                        --batch_size 36 --lr 3e-4 \
+#                                        --epochs 30
+
+#CMD ["nvidia-smi"]
+
+
+# MNIST
+# ENV MNIST_PY mnist_cnn.py
+# ENV MNIST_URL https://raw.githubusercontent.com/fchollet/keras/master/examples/$MNIST_PY
+# RUN wget $MNIST_URL -o /$MNIST_PY
+
+#RUN wget https://raw.githubusercontent.com/fchollet/keras/master/examples/mnist_cnn.py
+#CMD ["cd", "/" ]
+#CMD ["python3", "/mnist_cnn.py" ]
+
+#CMD git clone https://github.com/youtalk/get-started-ros2
+
+
+
+WORKDIR /tmp/
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+#RUN git config --global http.proxy=http://10.77.8.70:8080
+
+RUN git clone \
+        -b master \
+        https://github.com/osrf/docker_images.git
+
+ENV PYTHONPATH=/tmp/ros_buildfarm:/tmp/docker_images:/tmp/docker_templates:
+
+WORKDIR /tmp/docker_images
+
+
+

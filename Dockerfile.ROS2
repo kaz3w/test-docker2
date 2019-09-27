@@ -1,0 +1,117 @@
+# syntax = docker/dockerfile:experimental
+# MAINTAINER Katsumi WATANABE docker@xenon11.sakura.ne.jp
+
+FROM kaz3w/ros1_baseline
+
+ARG http_proxy
+ARG https_proxy
+ARG apt_proxy
+ARG git_proxy
+
+ENV HTTP_PROXY=${apt_proxy}
+ENV HTTPS_PROXY=${apt_proxy}
+ENV GIT_PROXY=${git_proxy}
+ENV no_proxy="127.0.0.1,localhost,10.78.0.0/16"
+
+ENV DATASET_PATH '/data/data/cut/train/'
+#ENV CUDA_VISIBLE_DEVICES ''
+ENV DEBIAN_FRONTEND=noninteractive
+
+# useing APT-mirror/proxy in apt configuration 
+RUN mkdir -p /etc/apt/sources.list.d
+WORKDIR /etc/apt
+COPY ./etc/apt/apt.conf .
+COPY ./etc/apt/sources.list .
+#if a[t=cache enabled
+COPY ./etc/apt/sources.list.d/ros2.list sources.list.d
+#RUN rm -f /etc/apt/sources.list.d/ros2-latest.list
+
+ENV ROS_DISTRO=dashing
+
+WORKDIR /
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3-colcon-common-extensions \
+    ros-dashing-desktop \
+    ros-dashing-image-geometry \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/*
+
+#2Y    python3-rosdep \
+#    python3-argcomplete \
+
+########################
+
+ENV MYSRC=/usr/local/src
+WORKDIR ${MYSRC}
+RUN git clone https://github.com/youtalk/get-started-ros2.git
+
+#######################3
+# libuvc 
+
+RUN git clone https://github.com/kaz3w/libuvc.git
+RUN mkdir -p ${MYSRC}/libuvc/_build
+WORKDIR ${MYSRC}/libuvc/_build
+RUN cmake .. -DBUILD_TEST=ON -DBUILD_EXAMPLE=ON -DBUILD_EXAMPLE_WRITE_JPEG=ON
+RUN make
+
+#######################3
+
+ENV ROS2_WS=${MYSRC}/ros2
+#ENV AMENT_PREFIX_PATH=/opt/ros/dashing
+#ENV CMAKE_PREFIX_PATH=${ROS2_WS}:/opt/ros/dashing
+
+RUN mkdir -p ${ROS2_WS}
+WORKDIR ${ROS2_WS}
+RUN . /opt/ros/dashing/setup.sh
+RUN git clone https://github.com/ros2/ros1_bridge.git
+RUN git clone https://github.com/ros-perception/vision_opencv.git
+RUN git clone https://github.com/klintan/ros2_usb_camera.git
+RUN git clone https://github.com/ros-perception/image_common.git
+#RUN git clone https://github.com/ros-perception/image_transport_plugins.git
+#RUN git clone https://github.com/ros-perception/image_pipeline.git
+
+# ROS2 Vison OpenCV
+ENV ROS2_WS_VISION_OPENCV=${ROS2_WS}/vision_opencv
+WORKDIR ${ROS2_WS_VISION_OPENCV}
+RUN git checkout ros2
+#RUN . /opt/ros/dashing/setup.sh \
+#&& colcon build --symlink-install
+
+# ROS2 UVC Camera
+ENV ROS2_WS_USBCAM ${ROS2_WS}/ros2_usb_camera
+WORKDIR ${ROS2_WS_USBCAM}
+#RUN . /opt/ros/dashing/setup.sh \
+#&& colcon build 
+
+# ROS2 tutorial
+ENV ROS_DISTRO=dashing
+ENV ROS2_WS_TUTORIAL ${MYSRC}/get-started-ros2
+WORKDIR ${ROS2_WS_TUTORIAL}
+RUN git submodule update --init
+RUN mkdir -p /root/ros2
+WORKDIR /root/ros2
+RUN ln -s ${ROS2_WS_TUTORIAL}/ros2 src
+RUN rosdep install --from-paths src --ignore-src -r -y
+RUN . /opt/ros/dashing/setup.sh \
+&& colcon build
+RUN bash install/setup.bash
+
+
+
+WORKDIR ${ROS2_WS}
+#RUN colcon list
+#RUN . /opt/ros/dashing/setup.sh \
+#&& colcon build --symlink-install
+#after build
+#RUN . install/local_setup.sh
+
+#RUN . /opt/ros/dashing/setup.sh \
+#&& colcon build --symlink-install
+
+#ENTRYPOINT["entry_point.sh"]
+
+
+ENV ROS_DOMAIN_ID=232
+CMD ["bash"]
+

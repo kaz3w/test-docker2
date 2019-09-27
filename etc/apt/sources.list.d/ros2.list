@@ -1,0 +1,4 @@
+#deb [arch=amd64] http://packages.ros.org/ros/ubuntu bionic main
+deb [arch=amd64] http://packages.ros.org/ros2/ubuntu bionic main
+#deb [arch=amd64] http://10.78.89.232/packages.ros.org/ros2/ubuntu bionic main
+
